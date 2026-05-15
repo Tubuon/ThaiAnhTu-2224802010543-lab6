@@ -37,7 +37,13 @@ class MyApp extends StatelessWidget {
             title: 'Music Player',
             debugShowCheckedModeBanner: false,
             themeMode: themeProvider.themeMode,
-            theme: ThemeData.light(),
+            theme: ThemeData.light().copyWith(
+              scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF1DB954),
+                surface: Colors.white,
+              ),
+            ),
             darkTheme: ThemeData.dark().copyWith(
               scaffoldBackgroundColor: const Color(0xFF191414),
               colorScheme: const ColorScheme.dark(

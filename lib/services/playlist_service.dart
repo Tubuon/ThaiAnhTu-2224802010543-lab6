@@ -1,47 +1,41 @@
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import '../models/song_model.dart' as app_models;
 
 class PlaylistService {
-  final OnAudioQuery _audioQuery = OnAudioQuery();
+  final audio_query.OnAudioQuery _audioQuery = audio_query.OnAudioQuery();
 
   Future<List<app_models.SongModel>> getAllSongs() async {
     try {
       final audioList = await _audioQuery.querySongs(
-        sortType: SongSortType.TITLE,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
+        sortType: audio_query.SongSortType.TITLE,
+        orderType: audio_query.OrderType.ASC_OR_SMALLER,
+        uriType: audio_query.UriType.EXTERNAL,
         ignoreCase: true,
       );
-      return audioList.map((audio) => app_models.SongModel(
-        id: audio.id.toString(),
-        title: audio.title,
-        artist: audio.artist ?? 'Unknown Artist',
-        album: audio.album,
-        filePath: audio.data,
-        duration: Duration(milliseconds: audio.duration ?? 0),
-      )).toList();
+      return audioList.map(app_models.SongModel.fromAudioQuery).toList();
     } catch (e) {
-      throw Exception('Lỗi load nhạc: $e');
+      throw Exception('Error loading songs: $e');
     }
   }
 
   Future<List<app_models.SongModel>> getSongsByArtist(String artist) async {
-    final all = await getAllSongs();
-    return all.where((s) => s.artist == artist).toList();
+    final allSongs = await getAllSongs();
+    return allSongs.where((song) => song.artist == artist).toList();
   }
 
   Future<List<app_models.SongModel>> getSongsByAlbum(String album) async {
-    final all = await getAllSongs();
-    return all.where((s) => s.album == album).toList();
+    final allSongs = await getAllSongs();
+    return allSongs.where((song) => song.album == album).toList();
   }
 
   Future<List<app_models.SongModel>> searchSongs(String query) async {
-    final all = await getAllSongs();
-    final q = query.toLowerCase();
-    return all.where((s) =>
-    s.title.toLowerCase().contains(q) ||
-        s.artist.toLowerCase().contains(q) ||
-        (s.album?.toLowerCase().contains(q) ?? false)
-    ).toList();
+    final allSongs = await getAllSongs();
+    final lowerQuery = query.toLowerCase();
+
+    return allSongs.where((song) {
+      return song.title.toLowerCase().contains(lowerQuery) ||
+          song.artist.toLowerCase().contains(lowerQuery) ||
+          (song.album?.toLowerCase().contains(lowerQuery) ?? false);
+    }).toList();
   }
 }

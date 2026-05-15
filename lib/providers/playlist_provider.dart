@@ -79,6 +79,25 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> reorderSongInPlaylist(
+    String playlistId,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index == -1) return;
+
+    final songIds = [..._playlists[index].songIds];
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final songId = songIds.removeAt(oldIndex);
+    songIds.insert(newIndex, songId);
+    _playlists[index] = _playlists[index].copyWith(songIds: songIds);
+    await _storageService.savePlaylists(_playlists);
+    notifyListeners();
+  }
+
   // Get songs of a playlist filtered from all songs
   List<SongModel> getPlaylistSongs(
       PlaylistModel playlist, List<SongModel> allSongs) {

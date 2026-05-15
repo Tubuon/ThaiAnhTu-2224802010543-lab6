@@ -1,30 +1,56 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:offline_music_player/main.dart';
+import 'package:offline_music_player/models/playlist_model.dart';
+import 'package:offline_music_player/models/song_model.dart';
+import 'package:offline_music_player/widgets/progress_bar.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('SongModel serializes duration in milliseconds', () {
+    final song = SongModel(
+      id: '1',
+      title: 'Test Song',
+      artist: 'Test Artist',
+      album: 'Test Album',
+      filePath: '/sdcard/Music/test.mp3',
+      duration: const Duration(seconds: 90),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final restored = SongModel.fromJson(song.toJson());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(restored.id, '1');
+    expect(restored.duration, const Duration(seconds: 90));
+    expect(restored.album, 'Test Album');
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('PlaylistModel copyWith updates song order', () {
+    final playlist = PlaylistModel(
+      id: 'p1',
+      name: 'Favorites',
+      songIds: const ['a', 'b', 'c'],
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    );
+
+    final updated = playlist.copyWith(songIds: const ['b', 'a', 'c']);
+
+    expect(updated.songIds, ['b', 'a', 'c']);
+    expect(updated.name, 'Favorites');
+  });
+
+  testWidgets('ProgressBar shows current and total duration', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProgressBar(
+            position: const Duration(minutes: 1, seconds: 5),
+            duration: const Duration(minutes: 3, seconds: 30),
+            onSeek: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('01:05'), findsOneWidget);
+    expect(find.text('03:30'), findsOneWidget);
   });
 }

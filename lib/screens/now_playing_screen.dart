@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song_model.dart';
 import '../providers/audio_provider.dart';
 import '../services/audio_player_service.dart'; // AudioPlaybackState
+import '../utils/constants.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/progress_bar.dart' as pb;
 
@@ -13,16 +15,16 @@ class NowPlayingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF191414),
+      backgroundColor: AppColors.background(context),
       body: Consumer<AudioProvider>(
         builder: (context, provider, child) {
           final song = provider.currentSong;
 
           if (song == null) {
-            return const Center(
+            return Center(
               child: Text(
                 'No song playing',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.text(context)),
               ),
             );
           }
@@ -32,15 +34,14 @@ class NowPlayingScreen extends StatelessWidget {
               children: [
                 _buildAppBar(context),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildAlbumArt(song),
-                        const SizedBox(height: 40),
-                        _buildSongInfo(song),
-                        const SizedBox(height: 40),
+                        _buildAlbumArt(context, song),
+                        const SizedBox(height: 24),
+                        _buildSongInfo(context, song),
+                        const SizedBox(height: 24),
                         StreamBuilder<AudioPlaybackState>(
                           stream: provider.playbackStateStream,
                           builder: (context, snapshot) {
@@ -52,10 +53,11 @@ class NowPlayingScreen extends StatelessWidget {
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                         PlayerControls(provider: provider),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                         _buildVolumeControl(provider),
+                        _buildSpeedControl(context, provider),
                       ],
                     ),
                   ),
@@ -75,19 +77,19 @@ class NowPlayingScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.keyboard_arrow_down,
-              color: Colors.white,
+              color: AppColors.icon(context),
               size: 32,
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          const Text(
+          Text(
             'Now Playing',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: AppColors.text(context), fontSize: 16),
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(Icons.more_vert, color: AppColors.icon(context)),
             onPressed: () {},
           ),
         ],
@@ -95,10 +97,12 @@ class NowPlayingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAlbumArt(SongModel song) {
+  Widget _buildAlbumArt(BuildContext context, SongModel song) {
+    final size = math.min(MediaQuery.sizeOf(context).width - 96, 240.0);
+
     return Container(
-      width: 300,
-      height: 300,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
@@ -114,7 +118,7 @@ class NowPlayingScreen extends StatelessWidget {
         child: song.albumArt != null
             ? Image.file(File(song.albumArt!), fit: BoxFit.cover)
             : Container(
-          color: const Color(0xFF282828),
+          color: AppColors.tile(context),
           child: const Icon(
             Icons.music_note,
             size: 100,
@@ -125,13 +129,13 @@ class NowPlayingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSongInfo(SongModel song) {
+  Widget _buildSongInfo(BuildContext context, SongModel song) {
     return Column(
       children: [
         Text(
           song.title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.text(context),
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -142,13 +146,13 @@ class NowPlayingScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           song.artist,
-          style: const TextStyle(color: Colors.grey, fontSize: 16),
+          style: TextStyle(color: AppColors.mutedText(context), fontSize: 16),
           textAlign: TextAlign.center,
         ),
         if (song.album != null)
           Text(
             song.album!,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: TextStyle(color: AppColors.mutedText(context), fontSize: 13),
             textAlign: TextAlign.center,
           ),
       ],
@@ -170,7 +174,7 @@ class NowPlayingScreen extends StatelessWidget {
               thumbColor: Colors.white,
             ),
             child: Slider(
-              value: 1.0,
+              value: provider.volume,
               min: 0.0,
               max: 1.0,
               onChanged: (value) => provider.setVolume(value),
@@ -178,6 +182,38 @@ class NowPlayingScreen extends StatelessWidget {
           ),
         ),
         const Icon(Icons.volume_up, color: Colors.grey),
+      ],
+    );
+  }
+
+  Widget _buildSpeedControl(BuildContext context, AudioProvider provider) {
+    return Row(
+      children: [
+        const Icon(Icons.speed, color: Colors.grey),
+        const SizedBox(width: 12),
+        Text(
+          '${provider.speed.toStringAsFixed(1)}x',
+          style: TextStyle(color: AppColors.text(context), fontSize: 14),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 2,
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 6),
+              activeTrackColor: const Color(0xFF1DB954),
+              inactiveTrackColor: Colors.grey[800],
+              thumbColor: Colors.white,
+            ),
+            child: Slider(
+              value: provider.speed,
+              min: 0.5,
+              max: 2.0,
+              divisions: 6,
+              onChanged: (value) => provider.setSpeed(value),
+            ),
+          ),
+        ),
       ],
     );
   }

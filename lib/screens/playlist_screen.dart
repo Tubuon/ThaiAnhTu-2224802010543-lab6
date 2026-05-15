@@ -4,6 +4,7 @@ import '../models/song_model.dart';
 import '../models/playlist_model.dart';
 import '../providers/audio_provider.dart';
 import '../providers/playlist_provider.dart';
+import '../utils/constants.dart';
 import '../widgets/song_tile.dart';
 import 'now_playing_screen.dart';
 
@@ -23,10 +24,10 @@ class PlaylistScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Playlists',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.text(context),
                         fontSize: 24,
                         fontWeight: FontWeight.bold),
                   ),
@@ -40,9 +41,9 @@ class PlaylistScreen extends StatelessWidget {
             ),
             Expanded(
               child: provider.playlists.isEmpty
-                  ? const Center(
+                  ? Center(
                   child: Text('No playlists yet',
-                      style: TextStyle(color: Colors.grey)))
+                      style: TextStyle(color: AppColors.mutedText(context))))
                   : ListView.builder(
                 itemCount: provider.playlists.length,
                 itemBuilder: (context, index) {
@@ -69,15 +70,15 @@ class PlaylistScreen extends StatelessWidget {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: const Color(0xFF282828),
+          color: AppColors.tile(context),
           borderRadius: BorderRadius.circular(4),
         ),
         child: const Icon(Icons.queue_music, color: Color(0xFF1DB954)),
       ),
       title: Text(playlist.name,
-          style: const TextStyle(color: Colors.white)),
+          style: TextStyle(color: AppColors.text(context))),
       subtitle: Text('${songs.length} songs',
-          style: const TextStyle(color: Colors.grey)),
+          style: TextStyle(color: AppColors.mutedText(context))),
       trailing: PopupMenuButton<String>(
         icon: const Icon(Icons.more_vert, color: Colors.grey),
         color: const Color(0xFF282828),
@@ -99,18 +100,16 @@ class PlaylistScreen extends StatelessWidget {
           ),
         ],
       ),
-      onTap: () => _openPlaylist(context, playlist, songs),
+      onTap: () => _openPlaylist(context, playlist),
     );
   }
 
-  void _openPlaylist(BuildContext context, PlaylistModel playlist,
-      List<SongModel> songs) {
+  void _openPlaylist(BuildContext context, PlaylistModel playlist) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PlaylistDetailScreen(
-          playlist: playlist,
-          songs: songs,
+          playlistId: playlist.id,
           allSongs: allSongs,
         ),
       ),
@@ -202,73 +201,116 @@ class PlaylistScreen extends StatelessWidget {
 
 // Playlist Detail Screen
 class PlaylistDetailScreen extends StatelessWidget {
-  final PlaylistModel playlist;
-  final List<SongModel> songs;
+  final String playlistId;
   final List<SongModel> allSongs;
 
   const PlaylistDetailScreen({
     super.key,
-    required this.playlist,
-    required this.songs,
+    required this.playlistId,
     required this.allSongs,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF191414),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF191414),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(playlist.name,
-            style: const TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Color(0xFF1DB954)),
-            onPressed: () => _showAddSongsDialog(context),
-          ),
-        ],
-      ),
-      body: songs.isEmpty
-          ? const Center(
-          child: Text('No songs in this playlist',
-              style: TextStyle(color: Colors.grey)))
-          : ListView.builder(
-        itemCount: songs.length,
-        itemBuilder: (context, index) {
-          return SongTile(
-            song: songs[index],
-            onTap: () {
-              context
-                  .read<AudioProvider>()
-                  .setPlaylist(songs, index);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const NowPlayingScreen()),
-              );
-            },
-            trailing: IconButton(
-              icon:
-              const Icon(Icons.remove_circle, color: Colors.red),
-              onPressed: () {
-                context
-                    .read<PlaylistProvider>()
-                    .removeSongFromPlaylist(
-                    playlist.id, songs[index].id);
-                Navigator.pop(context);
-              },
+    return Consumer<PlaylistProvider>(
+      builder: (context, playlistProvider, child) {
+        final playlist = playlistProvider.playlists
+            .where((p) => p.id == playlistId)
+            .firstOrNull;
+
+        if (playlist == null) {
+          return Scaffold(
+            backgroundColor: AppColors.background(context),
+            appBar: AppBar(backgroundColor: AppColors.background(context)),
+            body: const Center(
+              child: Text(
+                'Playlist not found',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
           );
-        },
-      ),
+        }
+
+        final songs = playlistProvider.getPlaylistSongs(playlist, allSongs);
+
+        return Scaffold(
+          backgroundColor: AppColors.background(context),
+          appBar: AppBar(
+            backgroundColor: AppColors.background(context),
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: AppColors.icon(context)),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              playlist.name,
+              style: TextStyle(color: AppColors.text(context)),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add, color: Color(0xFF1DB954)),
+                onPressed: () => _showAddSongsDialog(context, playlist),
+              ),
+            ],
+          ),
+          body: songs.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No songs in this playlist',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : ReorderableListView.builder(
+                  itemCount: songs.length,
+                  onReorder: (oldIndex, newIndex) {
+                    context.read<PlaylistProvider>().reorderSongInPlaylist(
+                          playlist.id,
+                          oldIndex,
+                          newIndex,
+                        );
+                  },
+                  itemBuilder: (context, index) {
+                    final song = songs[index];
+                    return SongTile(
+                      key: ValueKey(song.id),
+                      song: song,
+                      onTap: () {
+                        context.read<AudioProvider>().setPlaylist(songs, index);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NowPlayingScreen(),
+                          ),
+                        );
+                      },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.drag_handle, color: Colors.grey),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.remove_circle,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              context
+                                  .read<PlaylistProvider>()
+                                  .removeSongFromPlaylist(
+                                    playlist.id,
+                                    song.id,
+                                  );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 
-  void _showAddSongsDialog(BuildContext context) {
+  void _showAddSongsDialog(BuildContext context, PlaylistModel playlist) {
     final playlistProvider = context.read<PlaylistProvider>();
     final existingIds = playlist.songIds.toSet();
     final available =
@@ -277,20 +319,35 @@ class PlaylistDetailScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF282828),
-      builder: (_) => ListView.builder(
-        itemCount: available.length,
-        itemBuilder: (ctx, i) => ListTile(
-          title: Text(available[i].title,
-              style: const TextStyle(color: Colors.white)),
-          subtitle: Text(available[i].artist,
-              style: const TextStyle(color: Colors.grey)),
-          onTap: () {
-            playlistProvider.addSongToPlaylist(
-                playlist.id, available[i].id);
-            Navigator.pop(ctx);
-          },
-        ),
-      ),
+      builder: (_) => available.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'All songs are already in this playlist',
+                style: TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            )
+          : ListView.builder(
+              itemCount: available.length,
+              itemBuilder: (ctx, i) => ListTile(
+                title: Text(
+                  available[i].title,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  available[i].artist,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                onTap: () {
+                  playlistProvider.addSongToPlaylist(
+                    playlist.id,
+                    available[i].id,
+                  );
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
     );
   }
 }

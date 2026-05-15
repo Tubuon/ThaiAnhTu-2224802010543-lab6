@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../providers/audio_provider.dart';
+import '../utils/constants.dart';
 
 class PlayerControls extends StatelessWidget {
   final AudioProvider provider;
@@ -35,9 +36,9 @@ class PlayerControls extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.skip_previous,
-                color: Colors.white,
+                color: AppColors.icon(context),
                 size: 40,
               ),
               onPressed: () => provider.previous(),
@@ -67,9 +68,9 @@ class PlayerControls extends StatelessWidget {
             ),
 
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.skip_next,
-                color: Colors.white,
+                color: AppColors.icon(context),
                 size: 40,
               ),
               onPressed: () => provider.next(),

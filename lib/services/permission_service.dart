@@ -5,6 +5,11 @@ class PermissionService {
   Future<bool> requestStoragePermission() async {
     if (kIsWeb) return true;
 
+    if (await Permission.audio.isGranted) return true;
+
+    final audioStatus = await Permission.audio.request();
+    if (audioStatus.isGranted) return true;
+
     var status = await Permission.storage.status;
 
     if (status.isGranted) return true;

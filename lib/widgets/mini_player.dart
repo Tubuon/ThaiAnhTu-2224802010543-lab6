@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/audio_provider.dart';
 import '../services/audio_player_service.dart';
 import '../screens/now_playing_screen.dart';
+import '../utils/constants.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -20,7 +21,7 @@ class MiniPlayer extends StatelessWidget {
       child: Container(
         height: 80,
         decoration: BoxDecoration(
-          color: const Color(0xFF282828),
+          color: AppColors.surface(context),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3), // sửa withOpacity
@@ -91,8 +92,8 @@ class MiniPlayer extends StatelessWidget {
                             children: [
                               Text(
                                 song.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: AppColors.text(context),
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
@@ -100,8 +101,8 @@ class MiniPlayer extends StatelessWidget {
                               ),
                               Text(
                                 song.artist,
-                                style: const TextStyle(
-                                  color: Colors.grey,
+                                style: TextStyle(
+                                  color: AppColors.mutedText(context),
                                   fontSize: 12,
                                 ),
                                 maxLines: 1,
@@ -119,7 +120,7 @@ class MiniPlayer extends StatelessWidget {
                             return IconButton(
                               icon: Icon(
                                 isPlaying ? Icons.pause : Icons.play_arrow,
-                                color: Colors.white,
+                                color: AppColors.icon(context),
                                 size: 32,
                               ),
                               onPressed: () => provider.playPause(),
@@ -129,18 +130,18 @@ class MiniPlayer extends StatelessWidget {
 
                         // Previous button
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.skip_previous,
-                            color: Colors.white,
+                            color: AppColors.icon(context),
                           ),
                           onPressed: () => provider.previous(),
                         ),
 
                         // Next button
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.skip_next,
-                            color: Colors.white,
+                            color: AppColors.icon(context),
                           ),
                           onPressed: () => provider.next(),
                         ),
